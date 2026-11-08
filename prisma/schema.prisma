@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Position {
+  GK
+  DEF
+  MID
+  FWD
+}
+
+enum RoundStatus {
+  UPCOMING
+  OPEN
+  LOCKED
+  SCORED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  PLAYED
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String
+  displayName  String
+  role         Role         @default(USER)
+  createdAt    DateTime     @default(now())
+  fantasyTeam  FantasyTeam?
+}
+
+model RealTeam {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  group       String
+  players     Player[]
+  homeMatches Match[] @relation("HomeTeam")
+  awayMatches Match[] @relation("AwayTeam")
+}
+
+model Player {
+  id         String            @id @default(cuid())
+  name       String
+  position   Position
+  price      Float
+  isActive   Boolean           @default(true)
+  realTeamId String
+  realTeam   RealTeam         @relation(fields: [realTeamId], references: [id], onDelete: Cascade)
+  stats      PlayerMatchStat[]
+  squadSpots SquadPlayer[]
+
+  @@index([realTeamId])
+  @@index([position])
+}
+
+model Round {
+  id        String      @id @default(cuid())
+  name      String
+  number    Int         @unique
+  deadline  DateTime
+  status    RoundStatus @default(UPCOMING)
+  createdAt DateTime    @default(now())
+  matches   Match[]
+  scores    RoundScore[]
+}
+
+model Match {
+  id         String           @id @default(cuid())
+  roundId    String
+  round      Round            @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  homeTeamId String
+  homeTeam   RealTeam         @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId String
+  awayTeam   RealTeam         @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeScore  Int              @default(0)
+  awayScore  Int              @default(0)
+  status     MatchStatus      @default(SCHEDULED)
+  stats      PlayerMatchStat[]
+
+  @@index([roundId])
+}
+
+model PlayerMatchStat {
+  id              String  @id @default(cuid())
+  matchId         String
+  match           Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  playerId        String
+  player          Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  minutes         Int     @default(0)
+  goals           Int     @default(0)
+  assists         Int     @default(0)
+  cleanSheet      Boolean @default(false)
+  goalsConceded   Int     @default(0)
+  saves           Int     @default(0)
+  penaltiesSaved  Int     @default(0)
+  penaltiesMissed Int     @default(0)
+  yellowCards     Int     @default(0)
+  redCards        Int     @default(0)
+  ownGoals        Int     @default(0)
+  bonus           Int     @default(0)
+
+  @@unique([matchId, playerId])
+  @@index([playerId])
+}
+
+model FantasyTeam {
+  id        String        @id @default(cuid())
+  userId    String        @unique
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  formation String        @default("4-4-2")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  players   SquadPlayer[]
+  scores    RoundScore[]
+}
+
+model SquadPlayer {
+  id            String      @id @default(cuid())
+  fantasyTeamId String
+  fantasyTeam   FantasyTeam @relation(fields: [fantasyTeamId], references: [id], onDelete: Cascade)
+  playerId      String
+  player        Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  isStarting    Boolean     @default(false)
+  isCaptain     Boolean     @default(false)
+  isVice        Boolean     @default(false)
+  benchOrder    Int         @default(0)
+
+  @@unique([fantasyTeamId, playerId])
+  @@index([fantasyTeamId])
+}
+
+model RoundScore {
+  id            String      @id @default(cuid())
+  fantasyTeamId String
+  fantasyTeam   FantasyTeam @relation(fields: [fantasyTeamId], references: [id], onDelete: Cascade)
+  roundId       String
+  round         Round       @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  points        Int
+  breakdownJson Json
+  computedAt    DateTime    @default(now())
+
+  @@unique([fantasyTeamId, roundId])
+  @@index([roundId])
+  @@index([fantasyTeamId])
+}
