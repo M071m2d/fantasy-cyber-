@@ -27,7 +27,7 @@ function stat(over: Partial<PlayerStatInput> & { playerId: string }): PlayerStat
 describe("scorePlayer", () => {
   it("scores an appearance and a defender clean sheet", () => {
     const b = scorePlayer({
-      position: "DEF",
+      position: "CB",
       minutes: 90,
       goals: 0,
       assists: 0,
@@ -48,7 +48,7 @@ describe("scorePlayer", () => {
   it("scores goals by position", () => {
     expect(
       scorePlayer({
-        position: "FWD", minutes: 90, goals: 2, assists: 1, cleanSheet: false,
+        position: "ST", minutes: 90, goals: 2, assists: 1, cleanSheet: false,
         saves: 0, penaltiesSaved: 0, penaltiesMissed: 0, yellowCards: 0,
         redCards: 0, ownGoals: 0, bonus: 3,
       }).total,
@@ -69,70 +69,46 @@ describe("scorePlayer", () => {
 });
 
 describe("isValidFormation", () => {
-  it("accepts 4-4-2 and 3-5-2", () => {
-    expect(isValidFormation({ GK: 1, DEF: 4, MID: 4, FWD: 2 })).toBe(true);
-    expect(isValidFormation({ GK: 1, DEF: 3, MID: 5, FWD: 2 })).toBe(true);
+  it("accepts legal 7-a-side formations", () => {
+    expect(isValidFormation({ GK: 1, CB: 3, ST: 3 })).toBe(true);
+    expect(isValidFormation({ GK: 1, CB: 2, ST: 4 })).toBe(true);
+    expect(isValidFormation({ GK: 1, CB: 4, ST: 2 })).toBe(true);
   });
   it("rejects illegal formations", () => {
-    expect(isValidFormation({ GK: 1, DEF: 2, MID: 5, FWD: 3 })).toBe(false);
-    expect(isValidFormation({ GK: 2, DEF: 3, MID: 3, FWD: 3 })).toBe(false);
+    expect(isValidFormation({ GK: 2, CB: 2, ST: 3 })).toBe(false);
+    expect(isValidFormation({ GK: 1, CB: 1, ST: 5 })).toBe(false);
+    expect(isValidFormation({ GK: 1, CB: 3, ST: 2 })).toBe(false);
   });
 });
 
 describe("computeTeamRound", () => {
   const picks: SquadPick[] = [
     { playerId: "gk", position: "GK", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
-    { playerId: "d1", position: "DEF", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
-    { playerId: "d2", position: "DEF", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
-    { playerId: "d3", position: "DEF", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
-    { playerId: "d4", position: "DEF", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
-    { playerId: "m1", position: "MID", isStarting: true, isCaptain: true, isVice: false, benchOrder: 0 },
-    { playerId: "m2", position: "MID", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
-    { playerId: "m3", position: "MID", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
-    { playerId: "m4", position: "MID", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
-    { playerId: "f1", position: "FWD", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
-    { playerId: "f2", position: "FWD", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
-    { playerId: "bench1", position: "MID", isStarting: false, isCaptain: false, isVice: false, benchOrder: 0 },
+    { playerId: "c1", position: "CB", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
+    { playerId: "c2", position: "CB", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
+    { playerId: "c3", position: "CB", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
+    { playerId: "s1", position: "ST", isStarting: true, isCaptain: true, isVice: false, benchOrder: 0 },
+    { playerId: "s2", position: "ST", isStarting: true, isCaptain: false, isVice: true, benchOrder: 0 },
+    { playerId: "s3", position: "ST", isStarting: true, isCaptain: false, isVice: false, benchOrder: 0 },
   ];
 
   it("doubles the captain's points", () => {
-    const stats = picks
-      .filter((p) => p.isStarting)
-      .map((p) =>
-        stat({
-          playerId: p.playerId,
-          goals: p.position === "MID" ? 1 : 0,
-        }),
-      );
+    const stats = picks.map((p) =>
+      stat({ playerId: p.playerId, goals: p.position === "ST" ? 1 : 0 }),
+    );
     const result = computeTeamRound(picks, stats);
     const captain = result.players.find((p) => p.isCaptain);
     expect(captain?.multipliedBy).toBe(2);
     expect(result.points).toBeGreaterThan(0);
-  });
-
-  it("auto-subs a bench player when a starter does not play", () => {
-    const stats = picks
-      .filter((p) => p.isStarting && p.playerId !== "m4")
-      .map((p) => stat({ playerId: p.playerId }));
-    stats.push(stat({ playerId: "bench1", goals: 2 }));
-
-    const result = computeTeamRound(picks, stats);
-    const sub = result.players.find((p) => p.playerId === "bench1");
-    expect(sub?.cameOffBench).toBe(true);
-    expect(sub?.benched).toBe(false);
+    expect(result.formation).toEqual({ GK: 1, CB: 3, ST: 3 });
   });
 
   it("promotes the vice-captain when the captain does not play", () => {
     const stats = picks
-      .filter((p) => p.isStarting && p.playerId !== "m1")
+      .filter((p) => p.playerId !== "s1")
       .map((p) => stat({ playerId: p.playerId }));
-    stats.push(stat({ playerId: "bench1" }));
-
-    const vicePicks = picks.map((p) =>
-      p.playerId === "m2" ? { ...p, isVice: true } : p,
-    );
-    const result = computeTeamRound(vicePicks, stats);
-    expect(result.captainId).toBe("m2");
-    expect(result.players.find((p) => p.playerId === "m2")?.multipliedBy).toBe(2);
+    const result = computeTeamRound(picks, stats);
+    expect(result.captainId).toBe("s2");
+    expect(result.players.find((p) => p.playerId === "s2")?.multipliedBy).toBe(2);
   });
 });

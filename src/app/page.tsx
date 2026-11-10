@@ -19,7 +19,7 @@ export default async function HomePage() {
               Beat your friends.
             </h1>
             <p className="mt-5 max-w-xl text-lg text-slate-600">
-              Fantasy football for your local tournament. Pick 15 players on a
+              Fantasy football for your local tournament. Pick 7 players on a
               budget, choose your captain each round, and score points from real
               match stats — all tracked on one leaderboard.
             </p>
@@ -43,7 +43,7 @@ export default async function HomePage() {
 
           <div className="pitch-surface rounded-2xl p-6 shadow-xl ring-1 ring-black/10">
             <div className="mx-auto grid max-w-sm grid-cols-3 gap-3">
-              {["FWD", "FWD", "MID", "MID", "MID", "DEF", "DEF", "DEF", "GK", "—", "—"].map(
+              {["ST", "ST", "ST", "CB", "CB", "CB", "GK"].map(
                 (pos, i) => (
                   <div
                     key={i}
@@ -62,8 +62,8 @@ export default async function HomePage() {
         <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-16 sm:grid-cols-3">
           {[
             {
-              title: "Pick a legal XI",
-              body: "15 players, a 100m budget, and formation rules. Build a squad that actually works.",
+              title: "Pick a legal VII",
+              body: "7 players, an 80m budget, and formation rules. Build a squad that actually works.",
             },
             {
               title: "Score every round",

@@ -31,16 +31,14 @@ export interface ScoreBreakdown {
 
 const GOAL_POINTS: Record<Position, number> = {
   GK: 6,
-  DEF: 6,
-  MID: 5,
-  FWD: 4,
+  CB: 6,
+  ST: 4,
 };
 
 const CLEAN_SHEET_POINTS: Record<Position, number> = {
   GK: 4,
-  DEF: 4,
-  MID: 1,
-  FWD: 0,
+  CB: 4,
+  ST: 0,
 };
 
 export function appearancePoints(minutes: number): number {
@@ -158,14 +156,13 @@ const EMPTY_STAT = {
 export function countByPosition(
   picks: { position: Position }[],
 ): Record<Position, number> {
-  const counts: Record<Position, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+  const counts: Record<Position, number> = { GK: 0, CB: 0, ST: 0 };
   for (const p of picks) counts[p.position] += 1;
   return counts;
 }
 
 export function isValidFormation(counts: Record<Position, number>): boolean {
-  const total =
-    counts.GK + counts.DEF + counts.MID + counts.FWD;
+  const total = counts.GK + counts.CB + counts.ST;
   if (total !== STARTING_XI) return false;
   return (Object.keys(FORMATION_LIMITS) as Position[]).every(
     (pos) =>
@@ -175,7 +172,7 @@ export function isValidFormation(counts: Record<Position, number>): boolean {
 }
 
 export function formationString(counts: Record<Position, number>): string {
-  return `${counts.DEF}-${counts.MID}-${counts.FWD}`;
+  return `${counts.CB}-${counts.ST}`;
 }
 
 /**

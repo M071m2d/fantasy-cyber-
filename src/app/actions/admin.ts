@@ -40,7 +40,7 @@ export async function createPlayerAction(formData: FormData) {
 
   if (
     name.length < 2 ||
-    !["GK", "DEF", "MID", "FWD"].includes(position) ||
+    !["GK", "CB", "ST"].includes(position) ||
     !Number.isFinite(price) ||
     price < 3.5 ||
     price > 20 ||
@@ -49,10 +49,15 @@ export async function createPlayerAction(formData: FormData) {
     fail("/admin/players", "Please provide valid player details.");
   }
 
+  const rosterCount = await prisma.player.count({ where: { realTeamId } });
+  if (rosterCount >= 7) {
+    fail("/admin/players", "That team already has the maximum of 7 players.");
+  }
+
   await prisma.player.create({
     data: {
       name,
-      position: position as "GK" | "DEF" | "MID" | "FWD",
+      position: position as "GK" | "CB" | "ST",
       price,
       realTeamId,
       isActive: true,

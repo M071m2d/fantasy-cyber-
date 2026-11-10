@@ -15,19 +15,19 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-const playerPositions = ["GK", "DEF", "MID", "FWD"] as const;
+const playerPositions = ["GK", "CB", "ST"] as const;
 
 export const squadPickSchema = z.object({
   playerId: z.string().min(1),
   isStarting: z.boolean(),
   isCaptain: z.boolean(),
   isVice: z.boolean(),
-  benchOrder: z.number().int().min(0).max(15),
+  benchOrder: z.number().int().min(0).max(7),
 });
 
 export const saveSquadSchema = z.object({
   teamName: z.string().trim().min(2).max(40),
-  picks: z.array(squadPickSchema).length(15),
+  picks: z.array(squadPickSchema).length(7),
 });
 
 export const realTeamSchema = z.object({

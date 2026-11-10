@@ -39,8 +39,8 @@ export default async function SquadPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Pick your squad</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Choose 15 players within a £{100}m budget: 2 GK, 5 DEF, 5 MID, 3 FWD.
-          Select 11 starters, a captain and a vice-captain.
+          Choose 7 players within an £{80}m budget: 1 GK, 2-4 CB, 2-4 ST.
+          Nominate a captain and a vice-captain.
         </p>
       </div>
 

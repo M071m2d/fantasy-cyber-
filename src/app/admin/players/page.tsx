@@ -9,6 +9,7 @@ import { Input, Label, Select } from "@/components/ui/input";
 import { SubmitButton } from "@/components/submit-button";
 import { cn, formatPrice } from "@/lib/utils";
 import { POSITION_BADGE } from "@/lib/labels";
+import { countByPosition } from "@/lib/scoring";
 
 export default async function AdminPlayersPage({
   searchParams,
@@ -62,11 +63,10 @@ export default async function AdminPlayersPage({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="player-position">Position</Label>
-                  <Select id="player-position" name="position" defaultValue="MID">
+                  <Select id="player-position" name="position" defaultValue="CB">
                     <option value="GK">GK</option>
-                    <option value="DEF">DEF</option>
-                    <option value="MID">MID</option>
-                    <option value="FWD">FWD</option>
+                    <option value="CB">CB</option>
+                    <option value="ST">ST</option>
                   </Select>
                 </div>
                 <div className="space-y-1">
@@ -112,12 +112,18 @@ export default async function AdminPlayersPage({
           {realTeams.length === 0 && (
             <p className="text-sm text-slate-500">No teams yet.</p>
           )}
-          {realTeams.map((team) => (
+          {realTeams.map((team) => {
+            const counts = countByPosition(team.players);
+            return (
             <div key={team.id}>
               <p className="mb-2 text-sm font-semibold text-slate-900">
                 {team.name}{" "}
                 <span className="font-normal text-slate-400">
                   · {team.group}
+                </span>
+                <span className="ml-2 text-xs font-normal text-slate-400">
+                  {team.players.length}/7 · {counts.GK} GK · {counts.CB} CB ·{" "}
+                  {counts.ST} ST
                 </span>
               </p>
               <div className="space-y-1">
@@ -169,7 +175,8 @@ export default async function AdminPlayersPage({
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </CardBody>
       </Card>
     </div>

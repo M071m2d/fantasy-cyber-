@@ -8,8 +8,11 @@ import {
   BUDGET,
   MAX_PER_REAL_TEAM,
   POSITION_ORDER,
-  SQUAD_QUOTA,
+  SQUAD_MAX,
+  SQUAD_MIN,
+  SQUAD_SIZE,
 } from "@/lib/constants";
+import { countByPosition } from "@/lib/scoring";
 import { validateSquad } from "@/lib/squad";
 import { formatPrice, cn } from "@/lib/utils";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,14 +39,19 @@ export type InitialPick = {
   benchOrder: number;
 };
 
-type PickMeta = { isStarting: boolean; isCaptain: boolean; isVice: boolean };
+type PickMeta = { isCaptain: boolean; isVice: boolean };
 
 const POSITION_BADGE: Record<Position, string> = {
   GK: "bg-amber-100 text-amber-800",
-  DEF: "bg-sky-100 text-sky-800",
-  MID: "bg-emerald-100 text-emerald-800",
-  FWD: "bg-rose-100 text-rose-800",
+  CB: "bg-sky-100 text-sky-800",
+  ST: "bg-rose-100 text-rose-800",
 };
+
+const GROUPS: { label: string; pos: Position }[] = [
+  { label: "Strikers", pos: "ST" },
+  { label: "Defenders", pos: "CB" },
+  { label: "Goalkeepers", pos: "GK" },
+];
 
 export function SquadBuilder({
   pool,
@@ -92,11 +100,7 @@ export function SquadBuilder({
   const [meta, setMeta] = useState<Record<string, PickMeta>>(() => {
     const out: Record<string, PickMeta> = {};
     for (const p of initialPicks) {
-      out[p.playerId] = {
-        isStarting: p.isStarting,
-        isCaptain: p.isCaptain,
-        isVice: p.isVice,
-      };
+      out[p.playerId] = { isCaptain: p.isCaptain, isVice: p.isVice };
     }
     return out;
   });
@@ -113,31 +117,19 @@ export function SquadBuilder({
     .map((id) => playerById.get(id))
     .filter((p): p is PoolPlayerView => Boolean(p));
 
-  const starting = selected.filter((p) => meta[p.id]?.isStarting);
-  const bench = selected.filter((p) => !meta[p.id]?.isStarting);
-
   const totalCost = selected.reduce((sum, p) => sum + p.price, 0);
   const remaining = BUDGET - totalCost;
+  const positionCounts = countByPosition(selected);
 
-  const selectionForValidation = selected.map((p, i) => ({
+  const selectionForValidation = selected.map((p) => ({
     playerId: p.id,
-    isStarting: Boolean(meta[p.id]?.isStarting),
+    isStarting: true,
     isCaptain: Boolean(meta[p.id]?.isCaptain),
     isVice: Boolean(meta[p.id]?.isVice),
-    benchOrder: bench.findIndex((b) => b.id === p.id) >= 0
-      ? bench.findIndex((b) => b.id === p.id)
-      : i,
+    benchOrder: 0,
   }));
 
   const validation = validateSquad(selectionForValidation, poolMap);
-
-  const positionCounts: Record<Position, number> = {
-    GK: 0,
-    DEF: 0,
-    MID: 0,
-    FWD: 0,
-  };
-  for (const p of selected) positionCounts[p.position] += 1;
 
   const teamCounts = new Map<string, number>();
   for (const p of selected) {
@@ -165,11 +157,11 @@ export function SquadBuilder({
   function addPlayer(player: PoolPlayerView) {
     setLocalError(null);
     if (selected.some((p) => p.id === player.id)) return;
-    if (selected.length >= 15) {
-      setLocalError("Your squad already has 15 players.");
+    if (selected.length >= SQUAD_SIZE) {
+      setLocalError(`Your squad already has ${SQUAD_SIZE} players.`);
       return;
     }
-    if (positionCounts[player.position] >= SQUAD_QUOTA[player.position]) {
+    if (positionCounts[player.position] >= SQUAD_MAX[player.position]) {
       setLocalError(`You already have the maximum ${player.position} players.`);
       return;
     }
@@ -187,11 +179,7 @@ export function SquadBuilder({
     setOrder((prev) => [...prev, player.id]);
     setMeta((prev) => ({
       ...prev,
-      [player.id]: {
-        isStarting: starting.length < 11,
-        isCaptain: false,
-        isVice: false,
-      },
+      [player.id]: { isCaptain: false, isVice: false },
     }));
   }
 
@@ -203,19 +191,6 @@ export function SquadBuilder({
       delete next[id];
       return next;
     });
-  }
-
-  function toggleStart(id: string) {
-    setLocalError(null);
-    setMeta((prev) => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        isStarting: !prev[id]?.isStarting,
-        isCaptain: prev[id]?.isStarting ? false : prev[id]?.isCaptain,
-        isVice: prev[id]?.isStarting ? false : prev[id]?.isVice,
-      },
-    }));
   }
 
   function setCaptain(id: string) {
@@ -242,22 +217,12 @@ export function SquadBuilder({
     teamName,
     picks: selected.map((p) => ({
       playerId: p.id,
-      isStarting: Boolean(meta[p.id]?.isStarting),
+      isStarting: true,
       isCaptain: Boolean(meta[p.id]?.isCaptain),
       isVice: Boolean(meta[p.id]?.isVice),
-      benchOrder:
-        bench.findIndex((b) => b.id === p.id) >= 0
-          ? bench.findIndex((b) => b.id === p.id)
-          : 0,
+      benchOrder: 0,
     })),
   };
-
-  const groups: { label: string; pos: Position }[] = [
-    { label: "Forwards", pos: "FWD" },
-    { label: "Midfielders", pos: "MID" },
-    { label: "Defenders", pos: "DEF" },
-    { label: "Goalkeepers", pos: "GK" },
-  ];
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
@@ -379,7 +344,7 @@ export function SquadBuilder({
               <div className="rounded-lg bg-slate-50 p-2">
                 <p className="text-xs text-slate-500">Squad</p>
                 <p className="text-sm font-bold text-slate-900">
-                  {selected.length}/15
+                  {selected.length}/{SQUAD_SIZE}
                 </p>
               </div>
             </div>
@@ -397,7 +362,7 @@ export function SquadBuilder({
             </div>
 
             <div className="space-y-3">
-              {groups.map((group) => {
+              {GROUPS.map((group) => {
                 const inGroup = selected.filter(
                   (p) => p.position === group.pos,
                 );
@@ -406,7 +371,8 @@ export function SquadBuilder({
                     <p className="mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-400">
                       <span>{group.label}</span>
                       <span>
-                        {positionCounts[group.pos]}/{SQUAD_QUOTA[group.pos]}
+                        {positionCounts[group.pos]}/{SQUAD_MAX[group.pos]} · min{" "}
+                        {SQUAD_MIN[group.pos]}
                       </span>
                     </p>
                     {inGroup.length === 0 ? (
@@ -425,15 +391,12 @@ export function SquadBuilder({
                               <span className="min-w-0 flex-1 truncate text-sm text-slate-800">
                                 {p.name}
                               </span>
-                              {!m?.isStarting && (
-                                <Badge variant="neutral">Bench</Badge>
-                              )}
                               {m?.isCaptain && <Badge variant="default">C</Badge>}
                               {m?.isVice && <Badge variant="info">V</Badge>}
                               <button
                                 type="button"
                                 title="Captain"
-                                disabled={!editable || !m?.isStarting}
+                                disabled={!editable}
                                 onClick={() => setCaptain(p.id)}
                                 className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600 disabled:opacity-30"
                               >
@@ -442,20 +405,11 @@ export function SquadBuilder({
                               <button
                                 type="button"
                                 title="Vice-captain"
-                                disabled={!editable || !m?.isStarting}
+                                disabled={!editable}
                                 onClick={() => setVice(p.id)}
                                 className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600 disabled:opacity-30"
                               >
                                 V
-                              </button>
-                              <button
-                                type="button"
-                                title="Toggle starter"
-                                disabled={!editable}
-                                onClick={() => toggleStart(p.id)}
-                                className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-600 disabled:opacity-30"
-                              >
-                                {m?.isStarting ? "Ben" : "Start"}
                               </button>
                               <button
                                 type="button"
@@ -495,7 +449,7 @@ export function SquadBuilder({
                 {state.success}
               </p>
             )}
-            {selected.length === 15 && !validation.ok && (
+            {selected.length === SQUAD_SIZE && !validation.ok && (
               <ul className="space-y-1 text-xs text-rose-600">
                 {validation.errors.slice(0, 4).map((e) => (
                   <li key={e}>• {e}</li>

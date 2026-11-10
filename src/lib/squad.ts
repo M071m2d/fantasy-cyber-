@@ -2,7 +2,7 @@ import type { Position } from "@/generated/prisma/enums";
 import {
   BUDGET,
   MAX_PER_REAL_TEAM,
-  SQUAD_QUOTA,
+  SQUAD_MIN,
   SQUAD_SIZE,
   STARTING_XI,
 } from "@/lib/constants";
@@ -64,10 +64,10 @@ export function validateSquad(
   }
 
   const byPosition = countByPosition(chosen);
-  (Object.keys(SQUAD_QUOTA) as Position[]).forEach((pos) => {
-    if (byPosition[pos] !== SQUAD_QUOTA[pos]) {
+  (Object.keys(SQUAD_MIN) as Position[]).forEach((pos) => {
+    if (byPosition[pos] < SQUAD_MIN[pos]) {
       errors.push(
-        `You need exactly ${SQUAD_QUOTA[pos]} ${pos} players (currently ${byPosition[pos]}).`,
+        `You need at least ${SQUAD_MIN[pos]} ${pos} players (currently ${byPosition[pos]}).`,
       );
     }
   });
@@ -90,48 +90,35 @@ export function validateSquad(
     );
   }
 
-  const starters = selection.filter((s) => s.isStarting);
-  if (starters.length !== STARTING_XI) {
-    errors.push(`You must select exactly ${STARTING_XI} starters.`);
-  }
-
-  const starterPositions = starters
-    .map((s) => pool.get(s.playerId))
-    .filter((p): p is PoolPlayer => Boolean(p));
-  const starterCounts = countByPosition(starterPositions);
-  if (!isValidFormation(starterCounts)) {
+  if (!isValidFormation(byPosition)) {
     errors.push(
-      "Starting XI formation is invalid (need 1 GK, 3-5 DEF, 2-5 MID, 1-3 FWD).",
+      `Invalid formation (need 1 GK, 2-4 CB, 2-4 ST — ${SQUAD_SIZE} players total).`,
     );
   }
 
-  const captains = selection.filter((s) => s.isCaptain);
-  const vices = selection.filter((s) => s.isVice);
-  if (captains.length !== 1) errors.push("Select exactly one captain.");
-  if (vices.length !== 1) errors.push("Select exactly one vice-captain.");
-  if (
-    captains.length === 1 &&
-    vices.length === 1 &&
-    captains[0].playerId === vices[0].playerId
-  ) {
-    errors.push("Captain and vice-captain must be different players.");
-  }
-  for (const c of [...captains, ...vices]) {
-    if (!c.isStarting) {
-      errors.push("Captain and vice-captain must be in the starting XI.");
-    }
+  const starters = selection.filter((s) => s.isStarting);
+  if (starters.length !== STARTING_XI) {
+    errors.push(`All ${STARTING_XI} squad players must be in the lineup.`);
   }
 
-  const bench = selection.filter((s) => !s.isStarting);
-  const benchOrders = bench.map((b) => b.benchOrder);
-  if (new Set(benchOrders).size !== benchOrders.length) {
-    errors.push("Bench players must have unique bench order numbers.");
+  const captain = selection.find((s) => s.isCaptain);
+  const vice = selection.find((s) => s.isVice);
+  if (!captain) errors.push("Select a captain.");
+  if (!vice) errors.push("Select a vice-captain.");
+  if (captain && vice && captain.playerId === vice.playerId) {
+    errors.push("Captain and vice-captain must be different players.");
+  }
+  if (captain && !captain.isStarting) {
+    errors.push("Captain must be in the lineup.");
+  }
+  if (vice && !vice.isStarting) {
+    errors.push("Vice-captain must be in the lineup.");
   }
 
   return {
     ok: errors.length === 0,
     errors,
     totalCost,
-    formation: formationString(starterCounts),
+    formation: formationString(byPosition),
   };
 }

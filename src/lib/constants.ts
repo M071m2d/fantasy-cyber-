@@ -1,23 +1,17 @@
 import type { Position } from "@/generated/prisma/enums";
 
 /** Default budget in millions. Change here to reconfigure the game. */
-export const BUDGET = 100;
+export const BUDGET = 80;
 
-export const SQUAD_SIZE = 15;
+export const SQUAD_SIZE = 7;
+export const STARTING_XI = SQUAD_SIZE;
 export const MAX_PER_REAL_TEAM = 3;
 
-export const SQUAD_QUOTA: Record<Position, number> = {
-  GK: 2,
-  DEF: 5,
-  MID: 5,
-  FWD: 3,
-};
-
-export const STARTING_QUOTA: Record<Position, number> = {
+/** Every squad must include at least these many players per position. */
+export const SQUAD_MIN: Record<Position, number> = {
   GK: 1,
-  DEF: 4,
-  MID: 4,
-  FWD: 2,
+  CB: 2,
+  ST: 2,
 };
 
 export const FORMATION_LIMITS: Record<
@@ -25,18 +19,21 @@ export const FORMATION_LIMITS: Record<
   { min: number; max: number }
 > = {
   GK: { min: 1, max: 1 },
-  DEF: { min: 3, max: 5 },
-  MID: { min: 2, max: 5 },
-  FWD: { min: 1, max: 3 },
+  CB: { min: 2, max: 4 },
+  ST: { min: 2, max: 4 },
 };
 
-export const STARTING_XI = 11;
+/** Squad composition limits used to cap picks while building. */
+export const SQUAD_MAX: Record<Position, number> = {
+  GK: 1,
+  CB: 4,
+  ST: 4,
+};
 
-export const POSITION_ORDER: Position[] = ["GK", "DEF", "MID", "FWD"];
+export const POSITION_ORDER: Position[] = ["GK", "CB", "ST"];
 
 export const POSITION_LABEL: Record<Position, string> = {
   GK: "Goalkeeper",
-  DEF: "Defender",
-  MID: "Midfielder",
-  FWD: "Forward",
+  CB: "Defender",
+  ST: "Striker",
 };

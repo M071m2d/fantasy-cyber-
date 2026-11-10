@@ -14,9 +14,8 @@ enum Role {
 
 enum Position {
   GK
-  DEF
-  MID
-  FWD
+  CB
+  ST
 }
 
 enum RoundStatus {
@@ -120,7 +119,7 @@ model FantasyTeam {
   userId    String        @unique
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
-  formation String        @default("4-4-2")
+  formation String        @default("3-3")
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   players   SquadPlayer[]

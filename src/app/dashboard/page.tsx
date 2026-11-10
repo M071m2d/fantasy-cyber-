@@ -85,7 +85,7 @@ export default async function DashboardPage() {
               Squad
             </p>
             <p className="mt-1 text-3xl font-black text-slate-900">
-              {team ? `${team.players.length}/15` : "0/15"}
+              {team ? `${team.players.length}/7` : "0/7"}
             </p>
             <p className="text-xs text-slate-400">
               {team ? `Formation ${team.formation}` : "Not built"}
@@ -149,8 +149,8 @@ export default async function DashboardPage() {
             <CardTitle>Quick guide</CardTitle>
           </CardHeader>
           <CardBody className="space-y-2 text-sm text-slate-600">
-            <p>• Build a legal 15-player squad within budget.</p>
-            <p>• Pick 11 starters and nominate a captain (double points).</p>
+            <p>• Build a legal 7-player squad within budget.</p>
+            <p>• Pick a captain and vice-captain (captain doubles points).</p>
             <p>• Edit your team until the round deadline.</p>
             <p>• Points are calculated from real tournament match stats.</p>
             <p>• Climb the global leaderboard round by round.</p>
